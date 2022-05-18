@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import numpy as np
-import streamlit as st
-import pandas as pd
-from pyparsing import nestedExpr
-import plotly.express as px
-import re
-from tsmoothie.smoother import ExponentialSmoother, SpectralSmoother, ConvolutionSmoother, PolynomialSmoother
 from io import StringIO
+
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import streamlit as st
+from tsmoothie.smoother import ConvolutionSmoother, ExponentialSmoother, PolynomialSmoother, SpectralSmoother
 
 st.set_page_config(
     page_title="Currencell", page_icon="random", layout="wide", initial_sidebar_state="auto", menu_items=None
