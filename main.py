@@ -111,14 +111,16 @@ if intervals_submitted:
     poly = np.polyfit(x=baseline_input_data["Elapsed Time (s)"], y=baseline_input_data["Smoothed Current (A)"], deg=3)
     baseline_value = np.polyval(poly, smoothed_data["Elapsed Time (s)"])
 
-    smoothed_data["baseline"] = baseline_value
+    smoothed_data["Baseline"] = baseline_value
 
-    fig = px.line(smoothed_data, x="Elapsed Time (s)", y=["Current (A)", "Smoothed Current (A)", "baseline"])
+    fig = px.line(smoothed_data, x="Elapsed Time (s)", y=["Current (A)", "Smoothed Current (A)", "Baseline"])
     for index in range(len(intervals) // 2):
         fig.add_vrect(x0=intervals[index * 2], x1=intervals[index * 2 + 1], line_width=0, fillcolor="red", opacity=0.2)
 
 
-fig.update_layout(showlegend=True)
+fig.update_layout(
+    showlegend=True,
+)
 
 st.plotly_chart(fig, use_container_width=True)
 
