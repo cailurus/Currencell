@@ -1,26 +1,18 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+import numpy as np
 import streamlit as st
 import pandas as pd
+from pyparsing import nestedExpr
 import plotly.express as px
-from tsmoothie.smoother import ExponentialSmoother, SpectralSmoother, ConvolutionSmoother
+import re
+from tsmoothie.smoother import ExponentialSmoother, SpectralSmoother, ConvolutionSmoother, PolynomialSmoother
 from io import StringIO
 
 st.set_page_config(
     page_title="Currencell", page_icon="random", layout="wide", initial_sidebar_state="auto", menu_items=None
 )
-
-st.title("Currencell")
-st.markdown("What kind of wonders happen when electricity passes through a cell?")
-
-st.header("Smoother Setup")
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    smoother_name = st.selectbox(
-        label="Smoother", options=["Exponential Smoother", "Spectral Smoother", "Convolution Smoother"], index=1
-    )
 
 
 def parameter_panel(smoother_name):
@@ -53,9 +45,6 @@ def parameter_panel(smoother_name):
     return {"smoother_name": smoother_name, "smoother": smoother}
 
 
-smoother_meta = parameter_panel(smoother_name)
-
-
 def smooth_process(data, smoother_meta):
     smoother = smoother_meta["smoother"]
     smoother.smooth(data["Current (A)"])
@@ -71,17 +60,65 @@ def smooth_process(data, smoother_meta):
     return smoothed_df
 
 
+st.title("Currencell")
+st.markdown("What kind of wonders happen when electricity passes through a cell?")
+
 uploaded_file = st.file_uploader("Choose a file")
 if uploaded_file is not None:
     default_file = uploaded_file
 else:
     default_file = "./data.txt"
 
+st.header("Smoother Setup")
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    smoother_name = st.selectbox(
+        label="Smoother", options=["Exponential Smoother", "Spectral Smoother", "Convolution Smoother"], index=1
+    )
+
+## col2 and col3
+smoother_meta = parameter_panel(smoother_name)
+
 data = pd.read_csv(default_file, header=0, sep="\t", usecols=["Elapsed Time (s)", "Current (A)"])[6000:]
 smoothed_data = smooth_process(data, smoother_meta)
 
+st.header("Selection Setup")
+# Using the "with" syntax
+with st.form(key="Intervals"):
+    ccc0, ccc1 = st.columns(2)
+    with ccc0:
+        intervals_string = st.text_input(
+            label="Enter the intervals", placeholder="Please input the intervals. (100, 150), (500, 600)"
+        )
+    with ccc1:
+        baseline_model_name = st.selectbox(label="Baseline Model", options=["Polynomial"], index=0)
+
+    intervals_submitted = st.form_submit_button(label="Submit")
+
+
 fig = px.line(smoothed_data, x="Elapsed Time (s)", y=["Current (A)", "Smoothed Current (A)"])
-fig.update_layout(showlegend=False)
+
+if intervals_submitted:
+    intervals_string = intervals_string.replace("(", " ").replace(")", " ").replace(",", " ")
+    intervals = [float(_) for _ in intervals_string.split()]
+
+    for index in range(len(intervals) // 2):
+        baseline_input_data = smoothed_data.drop(
+            smoothed_data.index[int(intervals[index * 2]) : int(intervals[index * 2 + 1])]
+        )
+
+    poly = np.polyfit(x=baseline_input_data["Elapsed Time (s)"], y=baseline_input_data["Smoothed Current (A)"], deg=3)
+    baseline_value = np.polyval(poly, smoothed_data["Elapsed Time (s)"])
+
+    smoothed_data["baseline"] = baseline_value
+
+    fig = px.line(smoothed_data, x="Elapsed Time (s)", y=["Current (A)", "Smoothed Current (A)", "baseline"])
+    for index in range(len(intervals) // 2):
+        fig.add_vrect(x0=intervals[index * 2], x1=intervals[index * 2 + 1], line_width=0, fillcolor="red", opacity=0.2)
+
+
+fig.update_layout(showlegend=True)
 
 st.plotly_chart(fig, use_container_width=True)
 
