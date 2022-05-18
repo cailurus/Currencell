@@ -81,6 +81,8 @@ data = pd.read_csv(default_file, header=0, sep="\t", usecols=["Elapsed Time (s)"
 smoothed_data = smooth_process(data, smoother_meta)
 
 fig = px.line(smoothed_data, x="Elapsed Time (s)", y=["Current (A)", "Smoothed Current (A)"])
+fig.update_layout(showlegend=False)
 
 st.plotly_chart(fig, use_container_width=True)
+
 # st.table(data.head(20).style.format({"Current (A)": "{:.8f}", "Elapsed Time (s)": "{:.2f}"}))
